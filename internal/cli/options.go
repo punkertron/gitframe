@@ -1,0 +1,87 @@
+package cli
+
+import (
+	"fmt"
+	"path/filepath"
+
+	"github.com/spf13/pflag"
+)
+
+type Options struct {
+	Repository   string
+	Revision     string
+	OrderBy      string
+	UseCommitter bool
+	Format       string
+	Extensions   []string
+	Languages    []string
+	Exclude      []string
+	RestrictTo   []string
+}
+
+func validateGlob(pattern string) error {
+	_, err := filepath.Match(pattern, "")
+	return err
+}
+
+func (opt *Options) Validate() error {
+	if len(opt.Repository) == 0 {
+		return fmt.Errorf("empty 'repository'")
+	}
+
+	if len(opt.Revision) == 0 {
+		return fmt.Errorf("empty 'revision'")
+	}
+
+	switch opt.OrderBy {
+	case "lines", "commits", "files":
+	default:
+		return fmt.Errorf("'order-by' must be one of ['lines', 'commits', 'files']")
+	}
+
+	switch opt.Format {
+	case "tabular", "csv", "json", "json-lines":
+	default:
+		return fmt.Errorf("'format' must be one of ['tabular', 'csv', 'json', 'json-lines']")
+	}
+
+	for _, pattern := range opt.Exclude {
+		if err := validateGlob(pattern); err != nil {
+			return fmt.Errorf("invalid exclude pattern %q: %w", pattern, err)
+		}
+	}
+
+	for _, pattern := range opt.RestrictTo {
+		if err := validateGlob(pattern); err != nil {
+			return fmt.Errorf("invalid restrict-to pattern %q: %w", pattern, err)
+		}
+	}
+
+	return nil
+}
+
+func defaultOptions() Options {
+	return Options{
+		Repository:   ".",
+		Revision:     "HEAD",
+		OrderBy:      "lines",
+		UseCommitter: false,
+		Format:       "tabular",
+		Extensions:   []string{},
+		Languages:    []string{},
+		Exclude:      []string{},
+		RestrictTo:   []string{},
+	}
+}
+
+func setFlags(fs *pflag.FlagSet, opt *Options) {
+	fs.StringVar(&opt.Repository, "repository", opt.Repository, "Path to Git repo. Default: current directory")
+	fs.StringVar(&opt.Revision, "revision", opt.Revision, "Commit. Default: HEAD")
+	fs.StringVar(&opt.OrderBy, "order-by", opt.OrderBy, "Sort results. Default: (lines, commits, files). If the keys are equal, the author with the lexicographically smaller name will appear higher")
+	fs.BoolVar(&opt.UseCommitter, "use-committer", opt.UseCommitter, "A boolean flag that replaces the author with the committer in the author's calculations. Default: false")
+	fs.StringVar(&opt.Format, "format", opt.Format, "Output format; one of tabular, csv, json, json-lines. Default: tabular")
+	fs.StringSliceVar(&opt.Extensions, "extensions", opt.Extensions, "A list of extensions that narrows down the list of files to be included in the calculation; multiple restrictions are separated by commas, for example, '.go,.md'")
+	fs.StringSliceVar(&opt.Languages, "languages", opt.Languages, "A list of languages (programming, markup, etc.) that narrows down the set of files included in the calculation; multiple restrictions are separated by commas, for example, 'go,markdown'")
+	fs.StringSliceVar(&opt.Exclude, "exclude", opt.Exclude, "A set of Glob patterns that exclude files from the calculation, such as 'foo/*,bar/*'")
+	fs.StringSliceVar(&opt.RestrictTo, "restrict-to", opt.RestrictTo, "A set of Glob patterns that include only files matching at least one of these glob patterns, such as 'foo/*,bar/*'")
+}

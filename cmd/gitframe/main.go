@@ -1,9 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"os"
+
+	"github.com/punkertron/gitframe/internal/cli"
 )
 
 func main() {
-	fmt.Println("Hello from gitframe!")
+	if err := cli.NewRootCmd().Execute(); err != nil {
+		os.Exit(1)
+	}
 }

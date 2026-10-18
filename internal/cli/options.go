@@ -60,6 +60,65 @@ func (opt *Options) Validate() error {
 	return nil
 }
 
+func (opt *Options) FilterFiles(files []string) []string {
+	if len(files) == 0 {
+		return nil
+	}
+
+	var res []string
+
+	for _, file := range files {
+		allowed := opt.shouldProcess(file)
+
+		if allowed {
+			res = append(res, file)
+		}
+	}
+
+	return res
+}
+
+func (opt *Options) shouldProcess(fileName string) bool {
+	// 1. Exclude
+	for _, pattern := range opt.Exclude {
+		if matched, _ := filepath.Match(pattern, fileName); matched == true {
+			return false
+		}
+	}
+
+	// 2. RestrictTo
+	if len(opt.RestrictTo) > 0 {
+		restricted := true
+		for _, pattern := range opt.RestrictTo {
+			if matched, _ := filepath.Match(pattern, fileName); matched == true {
+				restricted = false
+				break
+			}
+		}
+		if restricted == true {
+			return false
+		}
+	}
+
+	// 3. Extensions
+	if len(opt.Extensions) > 0 {
+		sameExt := false
+		for _, ext := range opt.Extensions {
+			if filepath.Ext(fileName) == ext {
+				sameExt = true
+				break
+			}
+		}
+		if sameExt == false {
+			return false
+		}
+	}
+
+	// TODO: 4. Languages.
+
+	return true
+}
+
 func defaultOptions() Options {
 	return Options{
 		Repository:   ".",

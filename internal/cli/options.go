@@ -2,21 +2,27 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
+	"slices"
+	"strings"
+
+	"github.com/punkertron/gitframe/configs"
 
 	"github.com/spf13/pflag"
 )
 
 type Options struct {
-	Repository   string
-	Revision     string
-	OrderBy      string
-	UseCommitter bool
-	Format       string
-	Extensions   []string
-	Languages    []string
-	Exclude      []string
-	RestrictTo   []string
+	Repository         string
+	Revision           string
+	OrderBy            string
+	UseCommitter       bool
+	Format             string
+	Extensions         []string
+	Languages          []string
+	languageExtensions []string
+	Exclude            []string
+	RestrictTo         []string
 }
 
 func validateGlob(pattern string) error {
@@ -43,6 +49,19 @@ func (opt *Options) Validate() error {
 	case "tabular", "csv", "json", "json-lines":
 	default:
 		return fmt.Errorf("'format' must be one of ['tabular', 'csv', 'json', 'json-lines']")
+	}
+
+	opt.languageExtensions = nil
+	if len(opt.Languages) > 0 {
+		for i := 0; i < len(opt.Languages); i++ {
+			opt.Languages[i] = strings.ToLower(opt.Languages[i])
+			extensions, ok := configs.ExtensionsByLanguage[opt.Languages[i]]
+			if ok {
+				opt.languageExtensions = append(opt.languageExtensions, extensions...)
+			} else {
+				fmt.Fprintf(os.Stderr, "Warning: language '%s' is unsupported\n", opt.Languages[i])
+			}
+		}
 	}
 
 	for _, pattern := range opt.Exclude {
@@ -102,19 +121,17 @@ func (opt *Options) shouldProcess(fileName string) bool {
 
 	// 3. Extensions
 	if len(opt.Extensions) > 0 {
-		sameExt := false
-		for _, ext := range opt.Extensions {
-			if filepath.Ext(fileName) == ext {
-				sameExt = true
-				break
-			}
-		}
-		if sameExt == false {
+		if !slices.Contains(opt.Extensions, filepath.Ext(fileName)) {
 			return false
 		}
 	}
 
-	// TODO: 4. Languages.
+	// 4. Languages.
+	if len(opt.languageExtensions) > 0 {
+		if !slices.Contains(opt.languageExtensions, filepath.Ext(fileName)) {
+			return false
+		}
+	}
 
 	return true
 }

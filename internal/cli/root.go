@@ -2,6 +2,8 @@ package cli
 
 import (
 	"github.com/punkertron/gitframe/internal/git"
+	"github.com/punkertron/gitframe/internal/sort"
+	"github.com/punkertron/gitframe/internal/stats"
 
 	"github.com/spf13/cobra"
 )
@@ -23,26 +25,7 @@ func NewRootCmd() *cobra.Command {
 			return opt.Validate()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// cmd.Printf("%+v\n", opt)
-
-			files, err := git.GetFiles(opt.Repository, opt.Revision)
-			if err != nil {
-				return err
-			}
-
-			f := opt.FilterFiles(files)
-			cmd.Println(f)
-
-			for _, file := range f {
-				st, _ := git.GetFileStatistics(opt.Repository, opt.Revision, file)
-
-				cmd.Println(st.Path)
-				for commit, info := range st.Commits {
-					cmd.Println(commit, info)
-				}
-			}
-
-			return nil
+			return run(cmd, &opt)
 		},
 	}
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
@@ -50,4 +33,61 @@ func NewRootCmd() *cobra.Command {
 	setFlags(rootCmd.Flags(), &opt)
 
 	return rootCmd
+}
+
+func run(cmd *cobra.Command, opt *Options) error {
+	files, err := git.GetFiles(opt.Repository, opt.Revision)
+	if err != nil {
+		return err
+	}
+
+	filtered := opt.FilterFiles(files)
+	//cmd.Println(filtered)
+
+	people := make(map[string]*stats.PersonStatistics)
+
+	for _, file := range filtered {
+		stat, err := git.GetFileStatistics(opt.Repository, opt.Revision, file)
+		if err != nil {
+			return err
+		}
+
+		//cmd.Println(stats.Path)
+
+		for commit, info := range stat.Commits {
+			name := info.Author
+			if opt.UseCommitter {
+				name = info.Committer
+			}
+
+			st, exists := people[name]
+			if !exists {
+				st = &stats.PersonStatistics{
+					Lines:   0,
+					Commits: make(map[string]struct{}),
+					Files:   make(map[string]struct{}),
+				}
+
+				people[name] = st
+			}
+
+			st.Lines += info.Lines
+			st.Files[file] = struct{}{}
+			st.Commits[commit] = struct{}{}
+
+			//cmd.Println(commit, info)
+		}
+	}
+
+	// for name, person := range people {
+	// 	cmd.Println(name, len(person.Commits), len(person.Files), person.Lines)
+	// }
+
+	res, err := sort.SortData(people, opt.OrderBy)
+	if err != nil {
+		return err
+	}
+	cmd.Println(res)
+
+	return nil
 }

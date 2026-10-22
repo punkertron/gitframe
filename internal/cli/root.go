@@ -33,6 +33,15 @@ func NewRootCmd() *cobra.Command {
 			f := opt.FilterFiles(files)
 			cmd.Println(f)
 
+			for _, file := range f {
+				st, _ := git.GetFileStatistics(opt.Repository, opt.Revision, file)
+
+				cmd.Println(st.Path)
+				for commit, info := range st.Commits {
+					cmd.Println(commit, info)
+				}
+			}
+
 			return nil
 		},
 	}

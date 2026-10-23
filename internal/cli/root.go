@@ -2,6 +2,7 @@ package cli
 
 import (
 	"github.com/punkertron/gitframe/internal/git"
+	"github.com/punkertron/gitframe/internal/output"
 	"github.com/punkertron/gitframe/internal/sort"
 	"github.com/punkertron/gitframe/internal/stats"
 
@@ -42,7 +43,6 @@ func run(cmd *cobra.Command, opt *Options) error {
 	}
 
 	filtered := opt.FilterFiles(files)
-	//cmd.Println(filtered)
 
 	people := make(map[string]*stats.PersonStatistics)
 
@@ -51,8 +51,6 @@ func run(cmd *cobra.Command, opt *Options) error {
 		if err != nil {
 			return err
 		}
-
-		//cmd.Println(stats.Path)
 
 		for commit, info := range stat.Commits {
 			name := info.Author
@@ -74,20 +72,13 @@ func run(cmd *cobra.Command, opt *Options) error {
 			st.Lines += info.Lines
 			st.Files[file] = struct{}{}
 			st.Commits[commit] = struct{}{}
-
-			//cmd.Println(commit, info)
 		}
 	}
-
-	// for name, person := range people {
-	// 	cmd.Println(name, len(person.Commits), len(person.Files), person.Lines)
-	// }
 
 	res, err := sort.SortData(people, opt.OrderBy)
 	if err != nil {
 		return err
 	}
-	cmd.Println(res)
 
-	return nil
+	return output.PrintResult(res, opt.Format, cmd.OutOrStdout())
 }

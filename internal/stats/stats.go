@@ -7,8 +7,8 @@ type PersonStatistics struct {
 }
 
 type Result struct {
-	Name    string
-	Lines   int
-	Commits int
-	Files   int
+	Name    string `json:"name"`
+	Lines   int    `json:"lines"`
+	Commits int    `json:"commits"`
+	Files   int    `json:"files"`
 }

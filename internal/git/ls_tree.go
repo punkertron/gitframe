@@ -1,13 +1,14 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 )
 
-func GetFiles(path, commit string) ([]string, error) {
-	output, err := runGitCommand("-C", path, "ls-tree", "-r", "-z", "--format=%(objecttype)%x09%(path)", commit)
+func GetFiles(ctx context.Context, path, commit string) ([]string, error) {
+	output, err := runGitCommand(ctx, "-C", path, "ls-tree", "-r", "-z", "--format=%(objecttype)%x09%(path)", commit)
 	if err != nil {
 		return nil, err
 	}

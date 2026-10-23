@@ -1,56 +1,48 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"strings"
+
+	"github.com/punkertron/gitframe/internal/stats"
 )
 
-type CommitInfo struct {
-	Author    string
-	Committer string
-	Lines     int // Lines attributed to this commit in this file.
-}
-
-type FileStatistics struct {
-	Path    string
-	Commits map[string]*CommitInfo // Commit hash -> contribution.
-}
-
-func GetFileStatistics(repository, revision, file string) (FileStatistics, error) {
-	output, err := runGitCommand("-C", repository, "blame", "--porcelain", revision, "--", file)
+func GetFileStatistics(ctx context.Context, repository, revision, file string) (stats.FileStatistics, error) {
+	output, err := runGitCommand(ctx, "-C", repository, "blame", "--porcelain", revision, "--", file)
 	if err != nil {
-		return FileStatistics{}, err
+		return stats.FileStatistics{}, err
 	}
 
-	commits, err := parseBlame(output)
+	commits, err := parseBlame(ctx, output)
 	if err != nil {
-		return FileStatistics{}, fmt.Errorf("parse git blame for %q: %w", file, err)
+		return stats.FileStatistics{}, fmt.Errorf("parse git blame for %q: %w", file, err)
 	}
 
 	// Empty files have no blame records. Attribute them to their last change.
 	if len(commits) == 0 {
 		output, err := runGitCommand(
-			"-C", repository,
+			ctx, "-C", repository,
 			"log", "-1",
 			"--format=%H%x00%aN%x00%cN",
 			revision, "--", ":(literal)"+file,
 		)
 		if err != nil {
-			return FileStatistics{}, err
+			return stats.FileStatistics{}, err
 		}
 
 		fields := strings.Split(strings.TrimSuffix(string(output), "\n"), "\x00")
 		if len(fields) != 3 || fields[0] == "" {
-			return FileStatistics{}, fmt.Errorf("git log returned no attribution for empty file %q", file)
+			return stats.FileStatistics{}, fmt.Errorf("git log returned no attribution for empty file %q", file)
 		}
-		commits[fields[0]] = &CommitInfo{Author: fields[1], Committer: fields[2]}
+		commits[fields[0]] = &stats.CommitInfo{Author: fields[1], Committer: fields[2]}
 	}
 
-	return FileStatistics{Path: file, Commits: commits}, nil
+	return stats.FileStatistics{Path: file, Commits: commits}, nil
 }
 
-func parseBlame(output []byte) (map[string]*CommitInfo, error) {
-	commits := make(map[string]*CommitInfo)
+func parseBlame(ctx context.Context, output []byte) (map[string]*stats.CommitInfo, error) {
+	commits := make(map[string]*stats.CommitInfo)
 	if len(output) == 0 {
 		return commits, nil
 	}
@@ -58,6 +50,9 @@ func parseBlame(output []byte) (map[string]*CommitInfo, error) {
 	// An empty currentHash means that the next line must be a record header.
 	var currentHash string
 	for line := range strings.SplitSeq(strings.TrimSuffix(string(output), "\n"), "\n") {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if currentHash == "" {
 			fieldCount := 0
 			for field := range strings.FieldsSeq(line) {
@@ -71,7 +66,7 @@ func parseBlame(output []byte) (map[string]*CommitInfo, error) {
 			}
 			if _, ok := commits[currentHash]; !ok {
 				currentHash = strings.Clone(currentHash)
-				commits[currentHash] = &CommitInfo{}
+				commits[currentHash] = &stats.CommitInfo{}
 			}
 			continue
 		}

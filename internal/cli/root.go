@@ -6,7 +6,6 @@ import (
 	"github.com/punkertron/gitframe/internal/git"
 	"github.com/punkertron/gitframe/internal/output"
 	"github.com/punkertron/gitframe/internal/sort"
-	"github.com/punkertron/gitframe/internal/stats"
 )
 
 const version = "0.1.0"
@@ -40,46 +39,21 @@ func NewRootCmd() *cobra.Command {
 }
 
 func run(cmd *cobra.Command, opt *Options) error {
-	revision, err := git.ResolveRevision(opt.Repository, opt.Revision)
+	revision, err := git.ResolveRevision(cmd.Context(), opt.Repository, opt.Revision)
 	if err != nil {
 		return err
 	}
 
-	files, err := git.GetFiles(opt.Repository, revision)
+	files, err := git.GetFiles(cmd.Context(), opt.Repository, revision)
 	if err != nil {
 		return err
 	}
 
 	filtered := opt.FilterFiles(files)
 
-	people := make(map[string]*stats.PersonStatistics)
-
-	for _, file := range filtered {
-		stat, err := git.GetFileStatistics(opt.Repository, revision, file)
-		if err != nil {
-			return err
-		}
-
-		for commit, info := range stat.Commits {
-			name := info.Author
-			if opt.UseCommitter {
-				name = info.Committer
-			}
-
-			st, exists := people[name]
-			if !exists {
-				st = &stats.PersonStatistics{
-					Commits: make(map[string]struct{}),
-					Files:   make(map[string]struct{}),
-				}
-
-				people[name] = st
-			}
-
-			st.Lines += info.Lines
-			st.Files[file] = struct{}{}
-			st.Commits[commit] = struct{}{}
-		}
+	people, err := collectStatistics(cmd.Context(), opt, revision, filtered)
+	if err != nil {
+		return err
 	}
 
 	res, err := sort.SortData(people, opt.OrderBy)

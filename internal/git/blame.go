@@ -1,9 +1,7 @@
 package git
 
 import (
-	"errors"
 	"fmt"
-	"os/exec"
 	"strings"
 )
 
@@ -19,7 +17,7 @@ type FileStatistics struct {
 }
 
 func GetFileStatistics(repository, revision, file string) (FileStatistics, error) {
-	output, err := blameGitOutput(repository, "blame", "--porcelain", revision, "--", file)
+	output, err := runGitCommand("-C", repository, "blame", "--porcelain", revision, "--", file)
 	if err != nil {
 		return FileStatistics{}, err
 	}
@@ -31,7 +29,12 @@ func GetFileStatistics(repository, revision, file string) (FileStatistics, error
 
 	// Empty files have no blame records. Attribute them to their last change.
 	if len(commits) == 0 {
-		output, err := blameGitOutput(repository, "log", "-1", "--format=%H%x00%an%x00%cn", revision, "--", file)
+		output, err := runGitCommand(
+			"-C", repository,
+			"log", "-1",
+			"--format=%H%x00%aN%x00%cN",
+			revision, "--", ":(literal)"+file,
+		)
 		if err != nil {
 			return FileStatistics{}, err
 		}
@@ -62,6 +65,7 @@ func parseBlame(output []byte) (map[string]*CommitInfo, error) {
 			}
 			currentHash = fields[0]
 			if _, ok := commits[currentHash]; !ok {
+				currentHash = strings.Clone(currentHash)
 				commits[currentHash] = &CommitInfo{}
 			}
 			continue
@@ -74,9 +78,9 @@ func parseBlame(output []byte) (map[string]*CommitInfo, error) {
 			info.Lines++
 			currentHash = ""
 		case strings.HasPrefix(line, "author "):
-			info.Author = strings.TrimPrefix(line, "author ")
+			info.Author = strings.Clone(strings.TrimPrefix(line, "author "))
 		case strings.HasPrefix(line, "committer "):
-			info.Committer = strings.TrimPrefix(line, "committer ")
+			info.Committer = strings.Clone(strings.TrimPrefix(line, "committer "))
 		}
 		// Other metadata is irrelevant to these statistics. Metadata omitted
 		// from later records is already stored in the map for this hash.
@@ -86,18 +90,4 @@ func parseBlame(output []byte) (map[string]*CommitInfo, error) {
 	}
 
 	return commits, nil
-}
-
-func blameGitOutput(repository string, args ...string) ([]byte, error) {
-	cmd := exec.Command("git", args...)
-	cmd.Dir = repository
-	output, err := cmd.Output()
-	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			return nil, fmt.Errorf("git %s failed: %w: %s", args[0], err, strings.TrimSpace(string(exitErr.Stderr)))
-		}
-		return nil, fmt.Errorf("could not run git %s: %w", args[0], err)
-	}
-	return output, nil
 }

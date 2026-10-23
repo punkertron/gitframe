@@ -54,13 +54,16 @@ func (opt *Options) Validate() error {
 	opt.languageExtensions = nil
 	if len(opt.Languages) > 0 {
 		for i := 0; i < len(opt.Languages); i++ {
-			opt.Languages[i] = strings.ToLower(opt.Languages[i])
-			extensions, ok := configs.ExtensionsByLanguage[opt.Languages[i]]
+			language := strings.ToLower(opt.Languages[i])
+			extensions, ok := configs.ExtensionsByLanguage[language]
 			if ok {
 				opt.languageExtensions = append(opt.languageExtensions, extensions...)
 			} else {
 				fmt.Fprintf(os.Stderr, "Warning: language '%s' is unsupported\n", opt.Languages[i])
 			}
+		}
+		if len(opt.languageExtensions) == 0 {
+			fmt.Fprintf(os.Stderr, "Warning: no supported extensions for language list: '%q'. Ignore Languages flag\n", opt.Languages)
 		}
 	}
 
@@ -100,7 +103,7 @@ func (opt *Options) FilterFiles(files []string) []string {
 func (opt *Options) shouldProcess(fileName string) bool {
 	// 1. Exclude
 	for _, pattern := range opt.Exclude {
-		if matched, _ := filepath.Match(pattern, fileName); matched == true {
+		if matched, _ := filepath.Match(pattern, fileName); matched {
 			return false
 		}
 	}
@@ -109,7 +112,7 @@ func (opt *Options) shouldProcess(fileName string) bool {
 	if len(opt.RestrictTo) > 0 {
 		restricted := true
 		for _, pattern := range opt.RestrictTo {
-			if matched, _ := filepath.Match(pattern, fileName); matched == true {
+			if matched, _ := filepath.Match(pattern, fileName); matched {
 				restricted = false
 				break
 			}

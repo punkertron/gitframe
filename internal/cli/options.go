@@ -1,15 +1,16 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
-	"os"
+	"io"
 	"path/filepath"
 	"slices"
 	"strings"
 
-	"github.com/punkertron/gitframe/configs"
-
 	"github.com/spf13/pflag"
+
+	"github.com/punkertron/gitframe/configs"
 )
 
 type Options struct {
@@ -32,39 +33,23 @@ func validateGlob(pattern string) error {
 
 func (opt *Options) Validate() error {
 	if len(opt.Repository) == 0 {
-		return fmt.Errorf("empty 'repository'")
+		return errors.New("empty 'repository'")
 	}
 
 	if len(opt.Revision) == 0 {
-		return fmt.Errorf("empty 'revision'")
+		return errors.New("empty 'revision'")
 	}
 
 	switch opt.OrderBy {
 	case "lines", "commits", "files":
 	default:
-		return fmt.Errorf("'order-by' must be one of ['lines', 'commits', 'files']")
+		return errors.New("'order-by' must be one of ['lines', 'commits', 'files']")
 	}
 
 	switch opt.Format {
 	case "tabular", "csv", "json", "json-lines":
 	default:
-		return fmt.Errorf("'format' must be one of ['tabular', 'csv', 'json', 'json-lines']")
-	}
-
-	opt.languageExtensions = nil
-	if len(opt.Languages) > 0 {
-		for i := 0; i < len(opt.Languages); i++ {
-			language := strings.ToLower(opt.Languages[i])
-			extensions, ok := configs.ExtensionsByLanguage[language]
-			switch {
-			case !ok:
-				fmt.Fprintf(os.Stderr, "Warning: unsupported language %q\n", opt.Languages[i])
-			case len(extensions) == 0:
-				fmt.Fprintf(os.Stderr, "Warning: language %q has no extensions; ignoring it\n", opt.Languages[i])
-			default:
-				opt.languageExtensions = append(opt.languageExtensions, extensions...)
-			}
-		}
+		return errors.New("'format' must be one of ['tabular', 'csv', 'json', 'json-lines']")
 	}
 
 	for _, pattern := range opt.Exclude {
@@ -82,6 +67,26 @@ func (opt *Options) Validate() error {
 	return nil
 }
 
+func (opt *Options) prepareLanguages(warnings io.Writer) error {
+	opt.languageExtensions = nil
+	for _, name := range opt.Languages {
+		extensions, ok := configs.ExtensionsByLanguage[strings.ToLower(name)]
+		switch {
+		case !ok:
+			if _, err := fmt.Fprintf(warnings, "Warning: unsupported language %q\n", name); err != nil {
+				return fmt.Errorf("write language warning: %w", err)
+			}
+		case len(extensions) == 0:
+			if _, err := fmt.Fprintf(warnings, "Warning: language %q has no extensions; ignoring it\n", name); err != nil {
+				return fmt.Errorf("write language warning: %w", err)
+			}
+		default:
+			opt.languageExtensions = append(opt.languageExtensions, extensions...)
+		}
+	}
+	return nil
+}
+
 func (opt *Options) FilterFiles(files []string) []string {
 	if len(files) == 0 {
 		return nil
@@ -90,9 +95,7 @@ func (opt *Options) FilterFiles(files []string) []string {
 	var res []string
 
 	for _, file := range files {
-		allowed := opt.shouldProcess(file)
-
-		if allowed {
+		if opt.shouldProcess(file) {
 			res = append(res, file)
 		}
 	}
@@ -117,23 +120,18 @@ func (opt *Options) shouldProcess(fileName string) bool {
 				break
 			}
 		}
-		if restricted == true {
+		if restricted {
 			return false
 		}
 	}
 
-	// 3. Extensions
-	if len(opt.Extensions) > 0 {
-		if !slices.Contains(opt.Extensions, filepath.Ext(fileName)) {
-			return false
-		}
+	extension := filepath.Ext(fileName)
+	if len(opt.Extensions) > 0 && !slices.Contains(opt.Extensions, extension) {
+		return false
 	}
 
-	// 4. Languages.
-	if len(opt.languageExtensions) > 0 {
-		if !slices.Contains(opt.languageExtensions, filepath.Ext(fileName)) {
-			return false
-		}
+	if len(opt.languageExtensions) > 0 && !slices.Contains(opt.languageExtensions, extension) {
+		return false
 	}
 
 	return true
@@ -141,15 +139,10 @@ func (opt *Options) shouldProcess(fileName string) bool {
 
 func defaultOptions() Options {
 	return Options{
-		Repository:   ".",
-		Revision:     "HEAD",
-		OrderBy:      "lines",
-		UseCommitter: false,
-		Format:       "tabular",
-		Extensions:   []string{},
-		Languages:    []string{},
-		Exclude:      []string{},
-		RestrictTo:   []string{},
+		Repository: ".",
+		Revision:   "HEAD",
+		OrderBy:    "lines",
+		Format:     "tabular",
 	}
 }
 

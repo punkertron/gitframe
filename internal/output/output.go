@@ -6,15 +6,13 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/punkertron/gitframe/internal/stats"
 )
 
-func PrintResult(results []stats.Result,
-	format string,
-	writer io.Writer) error {
-
+func PrintResult(results []stats.Result, format string, writer io.Writer) error {
 	switch format {
 	case "tabular":
 		return tabularOutput(results, writer)
@@ -30,15 +28,18 @@ func PrintResult(results []stats.Result,
 }
 
 func tabularOutput(results []stats.Result, writer io.Writer) error {
-	w := new(tabwriter.Writer)
-
-	w.Init(writer, 0, 0, 1, ' ', 0)
-	if _, err := fmt.Fprintf(w, "Name\tLines\tCommits\tFiles\n"); err != nil {
+	w := tabwriter.NewWriter(writer, 0, 0, 1, ' ', 0)
+	if _, err := fmt.Fprintln(w, "Name\tLines\tCommits\tFiles"); err != nil {
 		return err
 	}
 	for _, result := range results {
+		name := result.Name
+		if strings.ContainsAny(name, "\t\n\r\v\f") {
+			name = strconv.Quote(name)
+		}
+
 		if _, err := fmt.Fprintf(
-			w, "%s\t%d\t%d\t%d\n", result.Name, result.Lines,
+			w, "%s\t%d\t%d\t%d\n", name, result.Lines,
 			result.Commits, result.Files); err != nil {
 			return err
 		}

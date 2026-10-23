@@ -59,11 +59,16 @@ func parseBlame(output []byte) (map[string]*CommitInfo, error) {
 	var currentHash string
 	for line := range strings.SplitSeq(strings.TrimSuffix(string(output), "\n"), "\n") {
 		if currentHash == "" {
-			fields := strings.Fields(line)
-			if len(fields) != 3 && len(fields) != 4 {
+			fieldCount := 0
+			for field := range strings.FieldsSeq(line) {
+				if fieldCount == 0 {
+					currentHash = field
+				}
+				fieldCount++
+			}
+			if fieldCount != 3 && fieldCount != 4 {
 				return nil, fmt.Errorf("invalid blame header %q", line)
 			}
-			currentHash = fields[0]
 			if _, ok := commits[currentHash]; !ok {
 				currentHash = strings.Clone(currentHash)
 				commits[currentHash] = &CommitInfo{}

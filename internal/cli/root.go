@@ -1,12 +1,12 @@
 package cli
 
 import (
+	"github.com/spf13/cobra"
+
 	"github.com/punkertron/gitframe/internal/git"
 	"github.com/punkertron/gitframe/internal/output"
 	"github.com/punkertron/gitframe/internal/sort"
 	"github.com/punkertron/gitframe/internal/stats"
-
-	"github.com/spf13/cobra"
 )
 
 const version = "0.1.0"
@@ -23,7 +23,10 @@ func NewRootCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return opt.Validate()
+			if err := opt.Validate(); err != nil {
+				return err
+			}
+			return opt.prepareLanguages(cmd.ErrOrStderr())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return run(cmd, &opt)
@@ -66,7 +69,6 @@ func run(cmd *cobra.Command, opt *Options) error {
 			st, exists := people[name]
 			if !exists {
 				st = &stats.PersonStatistics{
-					Lines:   0,
 					Commits: make(map[string]struct{}),
 					Files:   make(map[string]struct{}),
 				}

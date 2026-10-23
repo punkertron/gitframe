@@ -37,7 +37,12 @@ func NewRootCmd() *cobra.Command {
 }
 
 func run(cmd *cobra.Command, opt *Options) error {
-	files, err := git.GetFiles(opt.Repository, opt.Revision)
+	revision, err := git.ResolveRevision(opt.Repository, opt.Revision)
+	if err != nil {
+		return err
+	}
+
+	files, err := git.GetFiles(opt.Repository, revision)
 	if err != nil {
 		return err
 	}
@@ -47,7 +52,7 @@ func run(cmd *cobra.Command, opt *Options) error {
 	people := make(map[string]*stats.PersonStatistics)
 
 	for _, file := range filtered {
-		stat, err := git.GetFileStatistics(opt.Repository, opt.Revision, file)
+		stat, err := git.GetFileStatistics(opt.Repository, revision, file)
 		if err != nil {
 			return err
 		}

@@ -56,14 +56,14 @@ func (opt *Options) Validate() error {
 		for i := 0; i < len(opt.Languages); i++ {
 			language := strings.ToLower(opt.Languages[i])
 			extensions, ok := configs.ExtensionsByLanguage[language]
-			if ok {
+			switch {
+			case !ok:
+				fmt.Fprintf(os.Stderr, "Warning: unsupported language %q\n", opt.Languages[i])
+			case len(extensions) == 0:
+				fmt.Fprintf(os.Stderr, "Warning: language %q has no extensions; ignoring it\n", opt.Languages[i])
+			default:
 				opt.languageExtensions = append(opt.languageExtensions, extensions...)
-			} else {
-				fmt.Fprintf(os.Stderr, "Warning: language '%s' is unsupported\n", opt.Languages[i])
 			}
-		}
-		if len(opt.languageExtensions) == 0 {
-			fmt.Fprintf(os.Stderr, "Warning: no supported extensions for language list: '%q'. Ignore Languages flag\n", opt.Languages)
 		}
 	}
 

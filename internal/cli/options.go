@@ -24,6 +24,7 @@ type Options struct {
 	languageExtensions []string
 	Exclude            []string
 	RestrictTo         []string
+	Progress           bool
 }
 
 func validateGlob(pattern string) error {
@@ -143,6 +144,7 @@ func defaultOptions() Options {
 		Revision:   "HEAD",
 		OrderBy:    "lines",
 		Format:     "tabular",
+		Progress:   true,
 	}
 }
 
@@ -156,4 +158,5 @@ func setFlags(fs *pflag.FlagSet, opt *Options) {
 	fs.StringSliceVar(&opt.Languages, "languages", opt.Languages, "A list of languages (programming, markup, etc.) that narrows down the set of files included in the calculation; multiple restrictions are separated by commas, for example, 'go,markdown'")
 	fs.StringSliceVar(&opt.Exclude, "exclude", opt.Exclude, "A set of Glob patterns that exclude files from the calculation, such as 'foo/*,bar/*'")
 	fs.StringSliceVar(&opt.RestrictTo, "restrict-to", opt.RestrictTo, "A set of Glob patterns that include only files matching at least one of these glob patterns, such as 'foo/*,bar/*'")
+	fs.BoolVar(&opt.Progress, "progress", opt.Progress, "Show processing progress. Default: true")
 }

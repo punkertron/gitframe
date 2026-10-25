@@ -51,7 +51,7 @@ func run(cmd *cobra.Command, opt *Options) error {
 
 	filtered := opt.FilterFiles(files)
 
-	people, err := collectStatistics(cmd.Context(), opt, revision, filtered)
+	people, err := collectStatistics(cmd.Context(), cmd.ErrOrStderr(), opt, revision, filtered)
 	if err != nil {
 		return err
 	}

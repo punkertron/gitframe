@@ -9,7 +9,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/punkertron/gitframe/internal/stats"
+	"github.com/punkertron/gitfame/internal/stats"
 )
 
 func PrintResult(results []stats.Result, format string, writer io.Writer) error {

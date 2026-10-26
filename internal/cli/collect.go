@@ -7,8 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/punkertron/gitframe/internal/git"
-	"github.com/punkertron/gitframe/internal/stats"
+	"github.com/punkertron/gitfame/internal/git"
+	"github.com/punkertron/gitfame/internal/stats"
 )
 
 type fileResult struct {

@@ -3,9 +3,9 @@ package cli
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/punkertron/gitframe/internal/git"
-	"github.com/punkertron/gitframe/internal/output"
-	"github.com/punkertron/gitframe/internal/sort"
+	"github.com/punkertron/gitfame/internal/git"
+	"github.com/punkertron/gitfame/internal/output"
+	"github.com/punkertron/gitfame/internal/sort"
 )
 
 const version = "0.1.0"
@@ -14,9 +14,9 @@ func NewRootCmd() *cobra.Command {
 	opt := defaultOptions()
 
 	rootCmd := &cobra.Command{
-		Use:           "gitframe",
-		Short:         "Gitframe is a CLI application",
-		Long:          "Gitframe is a command-line application built with Go",
+		Use:           "gitfame",
+		Short:         "Gitfame is a CLI application",
+		Long:          "Gitfame is a command-line application built with Go",
 		Args:          cobra.NoArgs,
 		Version:       version,
 		SilenceErrors: true,

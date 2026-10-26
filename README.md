@@ -1,19 +1,19 @@
-# Gitframe
+# Gitfame
 
-Gitframe is a Go command-line tool for Git contributor statistics. It reports lines, commits, and files per author for a selected repository snapshot.
+Gitfame is a Go command-line tool for Git contributor statistics. It reports lines, commits, and files per author for a selected repository snapshot.
 
 ## Installation
 
 Requires **Go 1.27.2+** and **Git** on your `PATH`.
 
 ```sh
-go install github.com/punkertron/gitframe/cmd/gitframe@latest
+go install github.com/punkertron/gitfame/cmd/gitfame@latest
 ```
 
 Or, from a local checkout:
 
 ```sh
-go install ./cmd/gitframe
+go install ./cmd/gitfame
 ```
 
 Make sure your Go binary directory (`GOBIN`, or `GOPATH/bin` by default) is on your `PATH`.
@@ -22,10 +22,10 @@ Make sure your Go binary directory (`GOBIN`, or `GOPATH/bin` by default) is on y
 
 ```sh
 # Analyze Go and Markdown files in the current repository.
-gitframe --extensions='.go,.md'
+gitfame --extensions='.go,.md'
 
 # Export Go contributor statistics from another repository.
-gitframe --repository=../my-project --languages=Go --format=json --progress=false
+gitfame --repository=../my-project --languages=Go --format=json --progress=false
 ```
 
 Example output:

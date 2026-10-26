@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/punkertron/gitframe/internal/cli"
+	"github.com/punkertron/gitfame/internal/cli"
 )
 
 func main() {

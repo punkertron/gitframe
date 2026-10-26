@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/punkertron/gitframe/internal/stats"
+	"github.com/punkertron/gitfame/internal/stats"
 )
 
 type Comparator func(x, y stats.Result) int

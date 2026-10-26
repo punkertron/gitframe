@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/punkertron/gitframe/internal/stats"
+	"github.com/punkertron/gitfame/internal/stats"
 )
 
 func GetFileStatistics(ctx context.Context, repository, revision, file string) (stats.FileStatistics, error) {

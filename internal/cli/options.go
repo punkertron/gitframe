@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/punkertron/gitframe/configs"
+	"github.com/punkertron/gitfame/configs"
 )
 
 type Options struct {

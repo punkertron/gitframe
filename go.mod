@@ -1,4 +1,4 @@
-module github.com/punkertron/gitframe
+module github.com/punkertron/gitfame
 
 go 1.27.2
 
